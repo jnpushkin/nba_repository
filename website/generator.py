@@ -70,6 +70,11 @@ def _find_witnessed_career_firsts(games_df: pd.DataFrame, career_firsts_cache: d
 
     # Check each player's career firsts
     for player_id, data in career_firsts_cache.items():
+        # Skip metadata keys like _processed_games
+        if player_id.startswith('_'):
+            continue
+        if not isinstance(data, dict):
+            continue
         player_name = data.get('player_name', player_names.get(player_id, player_id))
 
         # Check firsts (first points, first rebound, etc.)
