@@ -566,34 +566,35 @@ def find_career_firsts(player_id: str, scraper=None, verbose: bool = True) -> di
             # Update running totals and check for milestones
             for stat in CAREER_MILESTONES.keys():
                 if stat == 'G':
-                    # Games are counted above, check milestone here
-                    game_value = 1
+                    # Games already counted above at line 550, just check milestone
+                    old_total = totals[stat] - 1  # Before this game was added
+                    new_total = totals[stat]
                 else:
                     game_value = game.get(stat, 0)
-
-                if game_value > 0:
+                    if game_value <= 0:
+                        continue
                     old_total = totals[stat]
                     totals[stat] += game_value
                     new_total = totals[stat]
 
-                    # Check if we crossed any milestone thresholds
-                    for threshold in CAREER_MILESTONES[stat]:
-                        if old_total < threshold <= new_total:
-                            if threshold not in milestones_reached[stat]:
-                                milestones_reached[stat].add(threshold)
-                                stat_name = STAT_NAMES.get(stat, stat)
-                                milestone_name = f"Career {stat_name} #{threshold}"
-                                result['milestones'][stat].append({
-                                    'number': threshold,
-                                    'date': game.get('date_full', game.get('date', '')),
-                                    'game_id': game.get('game_id', ''),
-                                    'opponent': game.get('opponent', ''),
-                                    'year': year,
-                                    'milestone': milestone_name,
-                                    'career_total_after': new_total,
-                                })
-                                if verbose:
-                                    print(f"    Found {milestone_name}: {game.get('date', '')}")
+                # Check if we crossed any milestone thresholds
+                for threshold in CAREER_MILESTONES[stat]:
+                    if old_total < threshold <= new_total:
+                        if threshold not in milestones_reached[stat]:
+                            milestones_reached[stat].add(threshold)
+                            stat_name = STAT_NAMES.get(stat, stat)
+                            milestone_name = f"Career {stat_name} #{threshold}"
+                            result['milestones'][stat].append({
+                                'number': threshold,
+                                'date': game.get('date_full', game.get('date', '')),
+                                'game_id': game.get('game_id', ''),
+                                'opponent': game.get('opponent', ''),
+                                'year': year,
+                                'milestone': milestone_name,
+                                'career_total_after': new_total,
+                            })
+                            if verbose:
+                                print(f"    Found {milestone_name}: {game.get('date', '')}")
 
     # Store final career totals
     result['career_totals'] = {k: v for k, v in totals.items() if v > 0}
@@ -685,6 +686,11 @@ def find_witnessed_firsts(career_firsts_cache: dict, attended_games: dict) -> li
     witnessed = []
 
     for player_id, data in career_firsts_cache.items():
+        # Skip metadata keys like _processed_games
+        if player_id.startswith('_'):
+            continue
+        if not isinstance(data, dict):
+            continue
         player_name = data.get('player_name', player_id)
 
         # Check firsts
