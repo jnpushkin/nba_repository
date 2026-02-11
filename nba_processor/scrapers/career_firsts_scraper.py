@@ -139,7 +139,7 @@ def get_project_root() -> Path:
     for parent in [current] + list(current.parents):
         if (parent / '.project_root').exists():
             return parent
-        if (parent / 'nba_processor').is_dir() or (parent / '__main__.py').exists():
+        if (parent / 'nba_processor').is_dir() and (parent / 'cache').is_dir():
             return parent
     return Path.cwd()
 
