@@ -505,7 +505,7 @@ function initPlayerChart(games, stat) {
         const d = g.date || '';
         // Shorten date for display
         const parts = d.split(' ');
-        return parts.length >= 2 ? `${parts[0].slice(0,3)} ${parts[1]}` : d;
+        return parts.length >= 3 ? `${parts[0].slice(0,3)} ${parts[1].replace(',','')} '${parts[2].slice(2)}` : parts.length >= 2 ? `${parts[0].slice(0,3)} ${parts[1].replace(',','')}` : d;
     });
 
     const data = chartGames.map(g => g[stat] || 0);
