@@ -931,6 +931,61 @@ footer { text-align: center; padding: 1.5rem; color: var(--text-muted); font-siz
 .pbp-highlight-text { flex: 1; }
 .pbp-highlight-value { font-weight: 700; color: var(--accent-color); }
 
+/* Advanced Game Analysis */
+.game-analysis-section {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+}
+.game-analysis-section h4 { margin-bottom: 0.75rem; }
+.analysis-comeback-card {
+    border-left: 4px solid var(--accent-color);
+    background: linear-gradient(135deg, rgba(110,68,255,0.08), transparent);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.analysis-comeback-card strong { color: var(--accent-color); }
+.analysis-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    margin-top: 0.75rem;
+}
+.analysis-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.analysis-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    font-weight: 500;
+}
+.analysis-pill-run {
+    background: rgba(59,130,246,0.12);
+    color: #3b82f6;
+    border: 1px solid rgba(59,130,246,0.25);
+}
+.analysis-pill-shot {
+    background: rgba(249,115,22,0.12);
+    color: #f97316;
+    border: 1px solid rgba(249,115,22,0.25);
+}
+.analysis-pill-streak {
+    background: rgba(34,197,94,0.12);
+    color: #22c55e;
+    border: 1px solid rgba(34,197,94,0.25);
+}
+
 /* Day Games Modal */
 .day-games-list { }
 .day-game-item {

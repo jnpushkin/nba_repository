@@ -158,6 +158,38 @@ function formatMinutes(mp) {
     return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins}:00`;
 }
 
+function formatPeriod(p) {
+    if (p <= 4) return 'Q' + p;
+    if (p === 5) return 'OT';
+    return (p - 4) + 'OT';
+}
+
+function formatGameTime(t) {
+    if (typeof t !== 'string') return t;
+    // Already in M:SS format
+    if (t.includes(':')) return t;
+    // Bare seconds like "19.4" → "0:19"
+    const secs = Math.floor(parseFloat(t));
+    return '0:' + secs.toString().padStart(2, '0');
+}
+
+function chronoSort(a, b) {
+    if (a.startPeriod !== b.startPeriod) return a.startPeriod - b.startPeriod;
+    // Higher time remaining = earlier in the period
+    return parseFloat(b.startTime || '0') - parseFloat(a.startTime || '0');
+}
+
+// Format "away-home" score with leading team label: "114-113 GSW"
+function formatScore(scoreStr, awayTeam, homeTeam) {
+    if (!scoreStr || !scoreStr.includes('-')) return scoreStr;
+    const [away, home] = scoreStr.split('-').map(Number);
+    const awayCode = getTeamCode(awayTeam);
+    const homeCode = getTeamCode(homeTeam);
+    if (away === home) return `${away}-${home}`;
+    if (away > home) return `${away}-${home} ${awayCode}`;
+    return `${home}-${away} ${homeCode}`;
+}
+
 // Box Score Modal
 function showBoxScore(gameId) {
     const playerGames = (DATA.player_games || []).filter(p => p.game_id === gameId);
@@ -207,6 +239,57 @@ function showBoxScore(gameId) {
         <div class="date">${gameInfo?.date || ''}${gameType}</div>
     </div>`;
 
+    // Advanced Game Analysis
+    const pbp = gameInfo?.espnPbpAnalysis;
+    if (pbp) {
+        html += '<div class="game-analysis-section"><h4>Advanced Game Analysis</h4>';
+
+        // Comeback card
+        const cb = pbp.biggestComeback;
+        if (cb && cb.deficit > 0) {
+            html += `<div class="analysis-comeback-card">
+                <strong>${cb.team}</strong> overcame a <strong>${cb.deficit}-point</strong> deficit
+                (${cb.deficitScore} at ${cb.deficitTime} ${formatPeriod(cb.deficitPeriod)})
+                to win ${cb.finalScore}
+            </div>`;
+        }
+
+        // Scoring Runs (chronological)
+        const runs = (pbp.teamScoringRuns || []).slice().sort(chronoSort);
+        if (runs.length > 0) {
+            html += '<div class="analysis-label">Scoring Runs</div><div class="analysis-pills">';
+            runs.forEach(r => {
+                const period = r.startPeriod === r.endPeriod ? formatPeriod(r.startPeriod) : `${formatPeriod(r.startPeriod)}-${formatPeriod(r.endPeriod)}`;
+                html += `<span class="analysis-pill analysis-pill-run">${r.team} ${r.points}-0 run in ${period} (${formatScore(r.startScore, awayTeam, homeTeam)} → ${formatScore(r.endScore, awayTeam, homeTeam)})</span>`;
+            });
+            html += '</div>';
+        }
+
+        // Decisive Shots
+        const shots = [pbp.gameWinningShots?.clutchGoAhead, pbp.gameWinningShots?.decisiveShot].filter(Boolean);
+        const uniqueShots = shots.filter((s, i, arr) => i === 0 || s.player !== arr[0].player || s.time !== arr[0].time);
+        if (uniqueShots.length > 0) {
+            html += '<div class="analysis-label">Decisive Shots</div><div class="analysis-pills">';
+            uniqueShots.forEach(s => {
+                html += `<span class="analysis-pill analysis-pill-shot">${s.player} (${s.team}) with ${formatGameTime(s.time)} left in ${formatPeriod(s.period)} → ${formatScore(s.score, awayTeam, homeTeam)}</span>`;
+            });
+            html += '</div>';
+        }
+
+        // Player Scoring Streaks (top 5, chronological)
+        const streaks = (pbp.playerPointStreaks || []).slice(0, 5).sort(chronoSort);
+        if (streaks.length > 0) {
+            html += '<div class="analysis-label">Player Scoring Streaks</div><div class="analysis-pills">';
+            streaks.forEach(s => {
+                const period = s.startPeriod === s.endPeriod ? formatPeriod(s.startPeriod) : `${formatPeriod(s.startPeriod)}-${formatPeriod(s.endPeriod)}`;
+                html += `<span class="analysis-pill analysis-pill-streak">${s.player} scored ${s.points} consecutive pts in ${period} (${formatScore(s.startScore, awayTeam, homeTeam)} → ${formatScore(s.endScore, awayTeam, homeTeam)})</span>`;
+            });
+            html += '</div>';
+        }
+
+        html += '</div>';
+    }
+
     // Render each team's box score (away first, then home)
     sortedTeams.forEach(([teamName, roster]) => {
         html += `
@@ -238,33 +321,6 @@ function showBoxScore(gameId) {
 
         html += '</tbody></table></div></div>';
     });
-
-    // PBP Highlights
-    const pbp = gameInfo?.espnPbpAnalysis;
-    if (pbp) {
-        html += '<div class="boxscore-pbp-highlights"><h4>Play-by-Play Highlights</h4>';
-        if (pbp.biggestComeback && pbp.biggestComeback.deficit > 0) {
-            html += `<div class="pbp-highlight">
-                <span class="pbp-highlight-icon">&#x1F4AA;</span>
-                <span class="pbp-highlight-text">Comeback: ${pbp.biggestComeback.team} overcame a <strong>${pbp.biggestComeback.deficit}-point</strong> deficit</span>
-            </div>`;
-        }
-        const bestRun = (pbp.teamScoringRuns || [])[0];
-        if (bestRun) {
-            html += `<div class="pbp-highlight">
-                <span class="pbp-highlight-icon">&#x1F525;</span>
-                <span class="pbp-highlight-text">${bestRun.team} went on a <strong>${bestRun.points}-0</strong> scoring run</span>
-            </div>`;
-        }
-        const shot = pbp.gameWinningShots?.decisiveShot;
-        if (shot) {
-            html += `<div class="pbp-highlight">
-                <span class="pbp-highlight-icon">&#x1F3AF;</span>
-                <span class="pbp-highlight-text">Decisive shot by <strong>${shot.player}</strong> (Q${shot.period} ${shot.time})</span>
-            </div>`;
-        }
-        html += '</div>';
-    }
 
     detail.innerHTML = html;
     openModal('boxscore-modal');

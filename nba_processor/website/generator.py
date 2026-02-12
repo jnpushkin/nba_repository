@@ -822,10 +822,10 @@ def _generate_html(json_data: str, summary: Dict[str, Any]) -> str:
                         <thead>
                             <tr>
                                 <th>Season</th>
-                                <th>Games</th>
-                                <th>Teams</th>
-                                <th>Arenas</th>
-                                <th>Players</th>
+                                <th class="num">Games</th>
+                                <th class="num">Teams</th>
+                                <th class="num">Arenas</th>
+                                <th class="num">Players</th>
                             </tr>
                         </thead>
                         <tbody></tbody>

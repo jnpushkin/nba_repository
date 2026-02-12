@@ -282,6 +282,11 @@ def main() -> None:
         help='Scrape career firsts for new players (not already cached)'
     )
     parser.add_argument(
+        '--scrape-pbp',
+        action='store_true',
+        help='Scrape ESPN play-by-play data for games'
+    )
+    parser.add_argument(
         '--log-file',
         type=str,
         default=None,
@@ -456,10 +461,61 @@ def main() -> None:
             except Exception as e:
                 warn(f"Career firsts scraping failed: {e}")
 
+        # Scrape ESPN play-by-play data if requested
+        if args.scrape_pbp:
+            try:
+                from .scrapers.espn_pbp_scraper import get_espn_pbp_for_game
+                from .engines.espn_pbp_engine import ESPNPlayByPlayEngine
+                info("\nScraping ESPN play-by-play data...")
+
+                pbp_count = 0
+                for game in games_data:
+                    basic_info = game.get('basic_info', {})
+                    away_team = basic_info.get('away_team', '')
+                    home_team = basic_info.get('home_team', '')
+                    date_str = basic_info.get('date_yyyymmdd', '')
+
+                    if not away_team or not home_team or not date_str:
+                        continue
+
+                    # Skip if already has PBP analysis
+                    if game.get('espn_pbp_analysis'):
+                        pbp_count += 1
+                        continue
+
+                    espn_pbp = get_espn_pbp_for_game(
+                        away_team, home_team, date_str, verbose=args.verbose
+                    )
+                    if espn_pbp and espn_pbp.get('plays'):
+                        engine = ESPNPlayByPlayEngine(espn_pbp, game)
+                        game['espn_pbp_analysis'] = engine.analyze()
+                        pbp_count += 1
+
+                        # Update cache with PBP analysis
+                        game_id = game.get('game_id', '')
+                        if game_id:
+                            cache_path = CACHE_DIR / f"{game_id}.json"
+                            if cache_path.exists():
+                                try:
+                                    with open(cache_path, 'r') as f:
+                                        cached = json.load(f)
+                                    cached['espn_pbp_analysis'] = game['espn_pbp_analysis']
+                                    with open(cache_path, 'w') as f:
+                                        json.dump(cached, f, indent=2)
+                                except (json.JSONDecodeError, IOError):
+                                    pass
+
+                info(f"  ESPN PBP data for {pbp_count}/{len(games_data)} games")
+
+            except ImportError as e:
+                warn(f"ESPN PBP scraper not available: {e}")
+            except Exception as e:
+                warn(f"ESPN PBP scraping failed: {e}")
+
         if generate_website:
             try:
                 from .website.generator import generate_website_from_data
-                generate_website_from_data(player_data, args.output_html)
+                generate_website_from_data(player_data, args.output_html, games_data=games_data)
                 info(f"Website: {os.path.abspath(args.output_html)}")
 
                 # Deploy to Surge unless --no-deploy flag is set
