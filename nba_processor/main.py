@@ -282,9 +282,9 @@ def main() -> None:
         help='Scrape career firsts for new players (not already cached)'
     )
     parser.add_argument(
-        '--scrape-pbp',
+        '--no-scrape-pbp',
         action='store_true',
-        help='Scrape ESPN play-by-play data for games'
+        help='Skip scraping ESPN play-by-play data for games'
     )
     parser.add_argument(
         '--log-file',
@@ -462,7 +462,7 @@ def main() -> None:
                 warn(f"Career firsts scraping failed: {e}")
 
         # Scrape ESPN play-by-play data if requested
-        if args.scrape_pbp:
+        if not args.no_scrape_pbp:
             try:
                 from .scrapers.espn_pbp_scraper import get_espn_pbp_for_game
                 from .engines.espn_pbp_engine import ESPNPlayByPlayEngine
